@@ -256,7 +256,9 @@
         
         async function loadData() {
             try {
-                const response = await fetch(JSON_URL);
+                const response = await fetch(`${JSON_URL}?t=${Date.now()}`, {
+                    cache: 'no-store'
+                });
                 frames = await response.json();
                 
                 // Preload first few images
