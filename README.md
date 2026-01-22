@@ -1,7 +1,5 @@
 # README.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 Aurora is a weather visualization application that displays NOAA OVATION aurora forecast data. It provides two implementations:
