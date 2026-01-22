@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Northern Aurora Forecast - NOAA OVATION</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0a1a2a 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #e0e0e0;
+        }
+        
+        h1 {
+            color: #7fdbff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(127, 219, 255, 0.5);
+            font-size: 1.8rem;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #aaa;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .viewer-container {
+            background: rgba(20, 20, 40, 0.8);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 60px rgba(100, 200, 255, 0.1);
+            max-width: 700px;
+            width: 100%;
+        }
+        
+        .image-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        #aurora-frame {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: opacity 0.15s ease;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.7);
+            color: #7fdbff;
+            font-size: 1.2rem;
+        }
+        
+        .loading-overlay.hidden {
+            display: none;
+        }
+        
+        .time-display {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #7fdbff;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            background: linear-gradient(180deg, #2a4a6a 0%, #1a3a5a 100%);
+            border: 1px solid #4a7a9a;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover {
+            background: linear-gradient(180deg, #3a5a7a 0%, #2a4a6a 100%);
+            box-shadow: 0 0 15px rgba(100, 180, 255, 0.3);
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        button.active {
+            background: linear-gradient(180deg, #4a8a4a 0%, #3a6a3a 100%);
+            border-color: #6aba6a;
+        }
+        
+        .progress-container {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #1a2a3a;
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3a7a9a, #7fdbff);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .speed-control label {
+            color: #aaa;
+        }
+        
+        .speed-control input[type="range"] {
+            width: 120px;
+            accent-color: #7fdbff;
+        }
+        
+        .info {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 50, 80, 0.3);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #aaa;
+            line-height: 1.5;
+        }
+        
+        .info a {
+            color: #7fdbff;
+        }
+        
+        .frame-counter {
+            text-align: center;
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .loading-text {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌌 Northern Lights Aurora Forecast</h1>
+    <p class="subtitle">NOAA OVATION Model - 24 Hour Animation</p>
+    
+    <div class="viewer-container">
+        <div class="image-wrapper">
+            <img id="aurora-frame" src="" alt="Aurora forecast">
+            <div class="loading-overlay" id="loading">
+                <span class="loading-text">Loading aurora data...</span>
+            </div>
+        </div>
+        
+        <div class="time-display" id="time-display">--:-- UTC</div>
+        
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="prev-btn">⏮ Prev</button>
+            <button id="play-btn" class="active">⏸ Pause</button>
+            <button id="next-btn">Next ⏭</button>
+        </div>
+        
+        <div class="speed-control">
+            <label>Speed:</label>
+            <input type="range" id="speed-slider" min="1" max="20" value="10">
+            <span id="speed-display">10 fps</span>
+        </div>
+        
+        <div class="frame-counter" id="frame-counter">Frame 0 / 0</div>
+        
+        <div class="info">
+            <strong>About:</strong> This animation shows the OVATION Aurora Forecast model predictions 
+            for aurora borealis visibility over the Northern Hemisphere. The data updates every 5 minutes 
+            and covers a 24-hour period. Brighter colors indicate higher probability of aurora visibility.
+            <br><br>
+            <strong>Source:</strong> <a href="https://www.swpc.noaa.gov/" target="_blank">NOAA Space Weather Prediction Center</a>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://services.swpc.noaa.gov';
+        const JSON_URL = 'https://services.swpc.noaa.gov/products/animations/ovation_north_24h.json';
+        
+        let frames = [];
+        let currentFrame = 0;
+        let isPlaying = true;
+        let animationInterval = null;
+        let fps = 10;
+        
+        const frameImg = document.getElementById('aurora-frame');
+        const timeDisplay = document.getElementById('time-display');
+        const progressFill = document.getElementById('progress-fill');
+        const progressBar = document.getElementById('progress-bar');
+        const playBtn = document.getElementById('play-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const speedSlider = document.getElementById('speed-slider');
+        const speedDisplay = document.getElementById('speed-display');
+        const frameCounter = document.getElementById('frame-counter');
+        const loadingOverlay = document.getElementById('loading');
+        
+        async function loadData() {
+            try {
+                const response = await fetch(JSON_URL);
+                frames = await response.json();
+                
+                // Preload first few images
+                const preloadCount = Math.min(5, frames.length);
+                const preloadPromises = frames.slice(0, preloadCount).map(frame => {
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        img.onload = resolve;
+                        img.onerror = resolve;
+                        img.src = BASE_URL + frame.url;
+                    });
+                });
+                
+                await Promise.all(preloadPromises);
+                
+                loadingOverlay.classList.add('hidden');
+                showFrame(0);
+                startAnimation();
+                
+                // Continue preloading remaining frames in background
+                frames.slice(preloadCount).forEach(frame => {
+                    const img = new Image();
+                    img.src = BASE_URL + frame.url;
+                });
+                
+            } catch (error) {
+                loadingOverlay.innerHTML = `<span style="color: #ff6b6b;">Error loading data. Please refresh.</span>`;
+                console.error('Failed to load aurora data:', error);
+            }
+        }
+        
+        function showFrame(index) {
+            if (frames.length === 0) return;
+
+            currentFrame = index;
+            const frame = frames[currentFrame];
+
+            frameImg.src = BASE_URL + frame.url;
+
+            const date = new Date(frame.time_tag);
+            const options = {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'Europe/Warsaw'
+            };
+            timeDisplay.textContent = date.toLocaleString('en-US', options);
+            
+            const progress = ((currentFrame + 1) / frames.length) * 100;
+            progressFill.style.width = progress + '%';
+            
+            frameCounter.textContent = `Frame ${currentFrame + 1} / ${frames.length}`;
+        }
+        
+        function nextFrame() {
+            showFrame((currentFrame + 1) % frames.length);
+        }
+        
+        function prevFrame() {
+            showFrame((currentFrame - 1 + frames.length) % frames.length);
+        }
+        
+        function startAnimation() {
+            if (animationInterval) clearInterval(animationInterval);
+            animationInterval = setInterval(nextFrame, 1000 / fps);
+            isPlaying = true;
+            playBtn.textContent = '⏸ Pause';
+            playBtn.classList.add('active');
+        }
+        
+        function stopAnimation() {
+            if (animationInterval) clearInterval(animationInterval);
+            animationInterval = null;
+            isPlaying = false;
+            playBtn.textContent = '▶ Play';
+            playBtn.classList.remove('active');
+        }
+        
+        function togglePlay() {
+            if (isPlaying) {
+                stopAnimation();
+            } else {
+                startAnimation();
+            }
+        }
+        
+        // Event listeners
+        playBtn.addEventListener('click', togglePlay);
+        prevBtn.addEventListener('click', () => {
+            stopAnimation();
+            prevFrame();
+        });
+        nextBtn.addEventListener('click', () => {
+            stopAnimation();
+            nextFrame();
+        });
+        
+        speedSlider.addEventListener('input', (e) => {
+            fps = parseInt(e.target.value);
+            speedDisplay.textContent = fps + ' fps';
+            if (isPlaying) {
+                startAnimation();
+            }
+        });
+        
+        progressBar.addEventListener('click', (e) => {
+            const rect = progressBar.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            const frameIndex = Math.floor(percent * frames.length);
+            showFrame(Math.max(0, Math.min(frameIndex, frames.length - 1)));
+        });
+        
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case ' ':
+                    e.preventDefault();
+                    togglePlay();
+                    break;
+                case 'ArrowLeft':
+                    stopAnimation();
+                    prevFrame();
+                    break;
+                case 'ArrowRight':
+                    stopAnimation();
+                    nextFrame();
+                    break;
+            }
+        });
+        
+        // Start loading
+        loadData();
+    </script>
+</body>
+</html>
